@@ -50,14 +50,21 @@ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.58,.9,4,8),jersey);torso.p
 const head=new THREE.Mesh(new THREE.SphereGeometry(.38,16,12),skin);head.position.y=2.55;head.castShadow=true;group.add(head);
 const hair=new THREE.Mesh(new THREE.SphereGeometry(.39,12,8),black);hair.scale.set(1,.45,1);hair.position.y=2.82;group.add(hair);
 for(const side of [-1,1]){const leg=new THREE.Mesh(new THREE.CapsuleGeometry(.17,.68,3,6),shorts);leg.position.set(side*.23,.55,0);leg.castShadow=true;group.add(leg);const boot=new THREE.Mesh(new THREE.BoxGeometry(.22,.14,.42),black);boot.position.set(side*.23,.12,-.08);group.add(boot);const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.62,3,6),jersey);arm.position.set(side*.68,1.55,0);arm.rotation.z=side*.16;group.add(arm)}
-if(keeper){for(const side of [-1,1]){const glove=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),mat(0xf4f0d7));glove.position.set(side*.78,1.25,0);group.add(glove)}}
+if(keeper){
+  group.scale.setScalar(1.28);
+  for(const side of [-1,1]){const glove=new THREE.Mesh(new THREE.SphereGeometry(.34,12,10),mat(0xffffff));glove.position.set(side*.82,1.28,0);group.add(glove)}
+  const marker=new THREE.Mesh(new THREE.TorusGeometry(.48,.09,8,24),mat(0xffed55));
+  marker.rotation.x=Math.PI/2;marker.position.y=3.75;group.add(marker);
+  const badge=new THREE.Mesh(new THREE.SphereGeometry(.22,12,10),mat(0xffed55));
+  badge.position.set(0,3.95,0);group.add(badge);
+}
 group.position.set(x,0,z);scene.add(group);return {mesh:group,x,z,team,num,keeper,stamina:100,cd:0,hasBall:false}}
 const blueTeam=[],redTeam=[];
 const bluePos=[[-69,0],[-42,-25],[-42,0],[-42,25],[-18,-31],[-18,-11],[-18,11],[-18,31],[15,-20],[15,20],[0,0]];
 const redPos=[[69,0],[42,-25],[42,0],[42,25],[18,-31],[18,-11],[18,11],[18,31],[-15,-20],[-15,20],[0,0]];
 bluePos.forEach((p,i)=>blueTeam.push(makePlayer('blue',p[0],p[1],i===10?10:i+1,i===0)));
 redPos.forEach((p,i)=>redTeam.push(makePlayer('red',p[0],p[1],i===10?9:i+1,i===0)));
-let controlled=blueTeam[10],ballOwner=controlled,scoreA=0,scoreB=0,elapsed=0,matchRunning=false,shotHold=0,charging=false,lastTime=performance.now(),camYaw=0,camDist=38;
+let controlled=blueTeam[10],ballOwner=controlled,scoreA=0,scoreB=0,elapsed=0,matchRunning=false,shotHold=0,charging=false,lastTime=performance.now(),camYaw=0,camDist=48;
 const ball=new THREE.Mesh(new THREE.SphereGeometry(.48,24,18),ballMat);ball.castShadow=true;scene.add(ball);const seams=new THREE.Mesh(new THREE.TorusGeometry(.32,.018,6,24),black);seams.position.y=.02;ball.add(seams);
 const keys={};let msgTimer=0;
 function announce(t){document.getElementById('status').textContent=t;msgTimer=2.5}
@@ -75,8 +82,8 @@ function tackle(){if(!matchRunning)return;const opp=nearestOpponent(controlled);
 function switchPlayer(){let best=blueTeam[0],d=999;for(const p of blueTeam){let v=Math.hypot(p.x-ball.position.x,p.z-ball.position.z);if(v<d){d=v;best=p}}controlled=best;document.getElementById('player').textContent=best.num+' · FIELD PLAYER';announce('선수 변경')}
 function ai(dt){for(let i=0;i<redTeam.length;i++){const p=redTeam[i];if(p===ballOwner){const goalX=-55;let dx=goalX-p.x,dz=-p.z,len=Math.hypot(dx,dz)||1;p.x+=dx/len*dt*3.5;p.z+=dz/len*dt*3.5;if(Math.abs(dx)<19){releaseBall(27,true)}}
 else if(ballOwner&&ballOwner.team==='blue'&&i%3===0){let dx=ballOwner.x-p.x,dz=ballOwner.z-p.z,len=Math.hypot(dx,dz)||1;p.x+=dx/len*dt*2.4;p.z+=dz/len*dt*2.4}
-else{const home=redPos[i];p.x+=(home[0]-p.x)*dt*.45;p.z+=(home[1]-p.z)*dt*.45}if(p.keeper){p.x=p.team==='red'?69:-69;p.z=THREE.MathUtils.clamp(ball.position.z*.72,-7.2,7.2)}p.x=THREE.MathUtils.clamp(p.x,-73,73);p.z=THREE.MathUtils.clamp(p.z,-46,46);p.mesh.position.set(p.x,0,p.z);p.mesh.rotation.y=Math.atan2(ball.position.x-p.x,ball.position.z-p.z)}
-for(let i=0;i<blueTeam.length;i++){const p=blueTeam[i];if(p===controlled)continue;let target=ballOwner&&ballOwner.team==='red'?ballOwner:ball;let tx=target.position?target.position.x:target.x,tz=target.position?target.position.z:target.z;if(p.keeper){p.x=-69;p.z=THREE.MathUtils.clamp(ball.position.z*.72,-7.2,7.2)}else if(i%3===0){p.x+=(tx-p.x)*dt*.32;p.z+=(tz-p.z)*dt*.32}p.x=THREE.MathUtils.clamp(p.x,-73,73);p.z=THREE.MathUtils.clamp(p.z,-46,46);p.mesh.position.set(p.x,0,p.z)}}}
+else{const home=redPos[i];p.x+=(home[0]-p.x)*dt*.45;p.z+=(home[1]-p.z)*dt*.45}if(p.keeper){p.x=p.team==='red'?69:-69;p.z=THREE.MathUtils.clamp(ball.position.z*.9,-7.5,7.5)}p.x=THREE.MathUtils.clamp(p.x,-73,73);p.z=THREE.MathUtils.clamp(p.z,-46,46);p.mesh.position.set(p.x,0,p.z);p.mesh.rotation.y=Math.atan2(ball.position.x-p.x,ball.position.z-p.z)}
+for(let i=0;i<blueTeam.length;i++){const p=blueTeam[i];if(p===controlled)continue;let target=ballOwner&&ballOwner.team==='red'?ballOwner:ball;let tx=target.position?target.position.x:target.x,tz=target.position?target.position.z:target.z;if(p.keeper){p.x=-69;p.z=THREE.MathUtils.clamp(ball.position.z*.9,-7.5,7.5)}else if(i%3===0){p.x+=(tx-p.x)*dt*.32;p.z+=(tz-p.z)*dt*.32}p.x=THREE.MathUtils.clamp(p.x,-73,73);p.z=THREE.MathUtils.clamp(p.z,-46,46);p.mesh.position.set(p.x,0,p.z)}}}
 function update(dt){if(!matchRunning)return;elapsed+=dt;let remaining=Math.max(0,90*60-elapsed);let mm=Math.floor(remaining/60),ss=Math.floor(remaining%60);document.getElementById('time').textContent=mm+':'+String(ss).padStart(2,'0');if(remaining<=0){finish();return}
 const forward=new THREE.Vector3(Math.sin(camYaw),0,-Math.cos(camYaw));const right=new THREE.Vector3(Math.cos(camYaw),0,Math.sin(camYaw));let move=new THREE.Vector3();if(keys.w)move.add(forward);if(keys.s)move.sub(forward);if(keys.d)move.add(right);if(keys.a)move.sub(right);if(move.lengthSq()>0){move.normalize();let sprint=keys.shift&&controlled.stamina>0;let speed=sprint?10:6.2;controlled.x+=move.x*speed*dt;controlled.z+=move.z*speed*dt;controlled.stamina=Math.max(0,controlled.stamina-(sprint?23:-9)*dt);controlled.mesh.rotation.y=Math.atan2(move.x,move.z)}else controlled.stamina=Math.min(100,controlled.stamina+13*dt);
 controlled.x=THREE.MathUtils.clamp(controlled.x,-73,73);controlled.z=THREE.MathUtils.clamp(controlled.z,-46,46);controlled.mesh.position.set(controlled.x,0,controlled.z);
