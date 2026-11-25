@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>뮤직 플레이어</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101018;color:#f7f7fb;font-family:Arial,'Noto Sans KR',sans-serif;min-height:100vh}
+header{padding:28px max(22px,5vw);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ffffff18}
+.logo{font-size:25px;font-weight:900;letter-spacing:1px}.logo span{color:#a78bfa}
+main{max-width:1050px;margin:35px auto;padding:0 20px 150px}.intro h1{font-size:clamp(30px,5vw,48px);margin:0 0 8px}.intro p{color:#aaaabd;margin:0 0 25px}
+.search{display:flex;gap:10px;margin:22px 0 26px}.search input{flex:1;min-width:0;background:#222230;border:1px solid #39394b;border-radius:14px;padding:16px;color:white;font-size:16px;outline:none}.search input:focus{border-color:#a78bfa}.search button,.play{border:0;border-radius:13px;background:#a78bfa;color:#171322;font-weight:800;padding:0 23px;cursor:pointer;font-size:15px}
+#message{color:#aaaabd;min-height:24px;margin:12px 0}.songs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.song{background:#1c1c28;border:1px solid #ffffff12;border-radius:17px;padding:13px;cursor:pointer;transition:.18s}.song:hover{transform:translateY(-3px);border-color:#a78bfa88}.song img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:11px;background:#333}.song h3{font-size:15px;margin:12px 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.song p{margin:0;color:#a6a6b8;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.player{position:fixed;bottom:0;left:0;right:0;background:#1b1b27f5;backdrop-filter:blur(15px);border-top:1px solid #ffffff20;padding:14px 22px 18px;display:grid;grid-template-columns:minmax(130px,1fr) minmax(220px,2fr) minmax(100px,1fr);gap:20px;align-items:center}
+.now{display:flex;align-items:center;gap:12px;min-width:0}.now img{width:52px;height:52px;border-radius:9px;object-fit:cover;background:#333}.now strong,.now small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.now small{color:#aaaabd;margin-top:5px}
+.controls{text-align:center}.buttons{display:flex;justify-content:center;align-items:center;gap:18px}.buttons button{background:none;border:0;color:white;font-size:21px;cursor:pointer}.buttons .mainplay{background:#a78bfa;color:#171322;border-radius:50%;width:42px;height:42px;font-size:18px}
+.timeline{display:flex;align-items:center;gap:10px;color:#aaaabd;font-size:11px;margin-top:8px}.timeline input{flex:1;accent-color:#a78bfa}
+.volume{text-align:right;color:#aaaabd;font-size:12px}.volume input{width:100px;accent-color:#a78bfa;vertical-align:middle}
+@media(max-width:650px){.player{grid-template-columns:1fr 1fr;gap:8px}.now{grid-column:1}.controls{grid-column:1/-1;grid-row:2}.volume{grid-column:2;grid-row:1}.search button{padding:0 15px}}
+</style></head>
+<body>
+<header><div class="logo">♫ <span>MOOD</span> PLAY</div><div style="color:#aaaabd;font-size:13px">음악 검색 플레이어</div></header>
+<main><section class="intro"><h1>듣고 싶은 노래를 찾아봐</h1><p>곡 제목이나 가수 이름을 검색하고 재생해 보세요.</p></section>
+<form class="search" id="searchForm"><input id="query" placeholder="노래 제목 또는 가수 검색" autocomplete="off"><button>검색</button></form>
+<div id="message">인기 음악을 불러오는 중...</div><section class="songs" id="songs"></section>
+</main>
+<footer class="player">
+<div class="now"><img id="cover" alt="앨범 이미지"><div style="min-width:0"><strong id="track">노래를 선택하세요</strong><small id="artist">검색 결과에서 곡을 클릭하세요</small></div></div>
+<div class="controls"><div class="buttons"><button id="prev" title="이전 곡">⏮</button><button class="mainplay" id="toggle" title="재생">▶</button><button id="next" title="다음 곡">⏭</button></div><div class="timeline"><span id="current">0:00</span><input id="seek" type="range" min="0" max="30" value="0"><span id="duration">0:30</span></div></div>
+<div class="volume">🔊 <input id="volume" type="range" min="0" max="1" step=".01" value=".8"></div>
+</footer>
+<audio id="audio"></audio>
+<script>
+const audio=document.getElementById('audio'),list=document.getElementById('songs');let tracks=[],index=-1;
+const el=id=>document.getElementById(id);
+function time(s){if(!Number.isFinite(s))return '0:00';return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')}
+async function search(term){el('message').textContent='검색 중...';list.innerHTML='';try{const url='https://itunes.apple.com/search?term='+encodeURIComponent(term)+'&media=music&entity=song&limit=40&country=KR';const res=await fetch(url);if(!res.ok)throw Error();const data=await res.json();tracks=data.results.filter(x=>x.previewUrl);render();el('message').textContent=tracks.length?'검색 결과 '+tracks.length+'곡 · 곡을 클릭하면 미리듣기가 시작됩니다.':'재생 가능한 미리듣기 결과가 없어요. 다른 검색어를 입력해 보세요.'}catch(e){el('message').textContent='음악 검색에 실패했어요. 인터넷 연결을 확인하고 다시 검색해 주세요.'}}
+function render(){list.innerHTML='';tracks.forEach((t,i)=>{const card=document.createElement('article');card.className='song';const img=document.createElement('img');img.src=t.artworkUrl100?.replace('100x100','300x300')||'';img.alt='앨범 이미지';const h=document.createElement('h3');h.textContent=t.trackName;const p=document.createElement('p');p.textContent=t.artistName+' · '+(t.collectionName||'싱글');card.append(img,h,p);card.onclick=()=>play(i);list.append(card)})}
+function play(i){if(!tracks.length)return;index=(i+tracks.length)%tracks.length;const t=tracks[index];audio.src=t.previewUrl;audio.play().catch(()=>el('message').textContent='재생을 시작할 수 없어요. 다른 곡을 선택해 주세요.');el('cover').src=t.artworkUrl100?.replace('100x100','300x300')||'';el('track').textContent=t.trackName;el('artist').textContent=t.artistName;el('toggle').textContent='Ⅱ';el('duration').textContent=time(t.trackTimeMillis/1000||30)}
+el('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=el('query').value.trim();if(q)search(q)});
+el('toggle').onclick=()=>{if(!audio.src){if(tracks.length)play(0);return}if(audio.paused){audio.play();el('toggle').textContent='Ⅱ'}else{audio.pause();el('toggle').textContent='▶'}};
+el('prev').onclick=()=>play(index-1);el('next').onclick=()=>play(index+1);
+el('volume').oninput=e=>audio.volume=Number(e.target.value);
+el('seek').oninput=e=>{if(audio.duration)audio.currentTime=Number(e.target.value)};
+audio.addEventListener('timeupdate',()=>{el('current').textContent=time(audio.currentTime);el('seek').max=audio.duration||30;el('seek').value=audio.currentTime});
+audio.addEventListener('ended',()=>play(index+1));
+audio.volume=.8;search('K-pop');
+</script></body></html>
