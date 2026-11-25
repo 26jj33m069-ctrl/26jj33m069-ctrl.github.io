@@ -22,7 +22,7 @@ main{max-width:1050px;margin:35px auto;padding:0 20px 150px}.intro h1{font-size:
 <header><div class="logo">♫ <span>MOOD</span> PLAY</div><div style="color:#aaaabd;font-size:13px">음악 검색 플레이어</div></header>
 <main><section class="intro"><h1>듣고 싶은 노래를 찾아봐</h1><p>곡 제목이나 가수 이름을 검색하고 재생해 보세요.</p></section>
 <form class="search" id="searchForm"><input id="query" placeholder="노래 제목 또는 가수 검색" autocomplete="off"><button>검색</button></form>
-<div id="message">인기 음악을 불러오는 중...</div><section class="songs" id="songs"></section>
+<div style="margin:0 0 18px"><button id="featuredLove" type="button" style="border:1px solid #a78bfa88;background:#292438;color:#eee;border-radius:999px;padding:10px 15px;cursor:pointer">추천곡 검색: 사랑의 바보 - 더 넛츠</button></div><div id="message">인기 음악을 불러오는 중...</div><section class="songs" id="songs"></section>
 </main>
 <footer class="player">
 <div class="now"><img id="cover" alt="앨범 이미지"><div style="min-width:0"><strong id="track">노래를 선택하세요</strong><small id="artist">검색 결과에서 곡을 클릭하세요</small></div></div>
@@ -71,7 +71,7 @@ async function play(i){
  try{await audio.play();el('message').textContent='미리듣기 재생 중';}
  catch(e){el('message').textContent='이 곡의 미리듣기를 재생할 수 없어요. 다른 곡을 눌러 보세요.';el('toggle').textContent='▶';}
 }
-el('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=el('query').value.trim();if(q)search(q)});
+el('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=el('query').value.trim();if(q)search(q)});\nel('featuredLove').onclick=()=>{el('query').value='사랑의 바보 더 넛츠';search('사랑의 바보 더 넛츠')};
 el('toggle').onclick=async()=>{if(!audio.src){if(tracks.length)play(0);return}if(audio.paused){try{await audio.play()}catch(e){el('message').textContent='재생할 수 없어요. 다른 곡을 선택해 주세요.'}}else audio.pause()};
 el('prev').onclick=()=>{if(index>=0)play(index-1)};el('next').onclick=()=>{if(index>=0)play(index+1)};
 el('volume').oninput=e=>audio.volume=Number(e.target.value);
