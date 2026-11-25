@@ -34,15 +34,52 @@ main{max-width:1050px;margin:35px auto;padding:0 20px 150px}.intro h1{font-size:
 const audio=document.getElementById('audio'),list=document.getElementById('songs');let tracks=[],index=-1;
 const el=id=>document.getElementById(id);
 function time(s){if(!Number.isFinite(s))return '0:00';return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0')}
-async function search(term){el('message').textContent='검색 중...';list.innerHTML='';try{const url='https://itunes.apple.com/search?term='+encodeURIComponent(term)+'&media=music&entity=song&limit=40&country=KR';const res=await fetch(url);if(!res.ok)throw Error();const data=await res.json();tracks=data.results.filter(x=>x.previewUrl);render();el('message').textContent=tracks.length?'검색 결과 '+tracks.length+'곡 · 곡을 클릭하면 미리듣기가 시작됩니다.':'재생 가능한 미리듣기 결과가 없어요. 다른 검색어를 입력해 보세요.'}catch(e){el('message').textContent='음악 검색에 실패했어요. 인터넷 연결을 확인하고 다시 검색해 주세요.'}}
-function render(){list.innerHTML='';tracks.forEach((t,i)=>{const card=document.createElement('article');card.className='song';const img=document.createElement('img');img.src=t.artworkUrl100?.replace('100x100','300x300')||'';img.alt='앨범 이미지';const h=document.createElement('h3');h.textContent=t.trackName;const p=document.createElement('p');p.textContent=t.artistName+' · '+(t.collectionName||'싱글');card.append(img,h,p);card.onclick=()=>play(i);list.append(card)})}
-function play(i){if(!tracks.length)return;index=(i+tracks.length)%tracks.length;const t=tracks[index];audio.src=t.previewUrl;audio.play().catch(()=>el('message').textContent='재생을 시작할 수 없어요. 다른 곡을 선택해 주세요.');el('cover').src=t.artworkUrl100?.replace('100x100','300x300')||'';el('track').textContent=t.trackName;el('artist').textContent=t.artistName;el('toggle').textContent='Ⅱ';el('duration').textContent=time(t.trackTimeMillis/1000||30)}
+async function search(term){
+ el('message').textContent='검색 중...';list.innerHTML='';
+ try{
+  const url='https://itunes.apple.com/search?term='+encodeURIComponent(term)+'&media=music&entity=song&limit=50&country=KR';
+  const res=await fetch(url);if(!res.ok)throw Error('검색 서버 응답 오류');
+  const data=await res.json();tracks=(data.results||[]).filter(x=>x.previewUrl);
+  render();
+  el('message').textContent=tracks.length?'검색 결과 '+tracks.length+'곡 · 앨범을 누르면 미리듣기가 재생돼요.':'재생 가능한 미리듣기가 없어요. 다른 제목이나 가수 이름으로 검색해 보세요.';
+ }catch(e){el('message').textContent='검색에 실패했어요. 인터넷 연결을 확인한 뒤 다시 검색해 주세요.'}
+}
+function render(){
+ list.innerHTML='';
+ tracks.forEach((t,i)=>{
+  const card=document.createElement('article');card.className='song';
+  const img=document.createElement('img');img.src=t.artworkUrl100?.replace('100x100','300x300')||'';img.alt='앨범 이미지';
+  const h=document.createElement('h3');h.textContent=t.trackName;
+  const p=document.createElement('p');p.textContent=t.artistName+' · '+(t.collectionName||'싱글');
+  card.append(img,h,p);card.onclick=()=>play(i);list.append(card);
+ });
+}
+async function play(i){
+ if(!tracks.length)return;
+ index=(i+tracks.length)%tracks.length;const t=tracks[index];
+ el('message').textContent='재생 준비 중...';
+ audio.pause();audio.src=t.previewUrl;audio.load();
+ el('cover').src=t.artworkUrl100?.replace('100x100','300x300')||'';
+ el('track').textContent=t.trackName;el('artist').textContent=t.artistName;
+ el('toggle').textContent='▶';el('duration').textContent='0:30';el('current').textContent='0:00';el('seek').value=0;
+ try{await audio.play();el('message').textContent='미리듣기 재생 중';}
+ catch(e){el('message').textContent='이 곡의 미리듣기를 재생할 수 없어요. 다른 곡을 눌러 보세요.';el('toggle').textContent='▶';}
+}
 el('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=el('query').value.trim();if(q)search(q)});
-el('toggle').onclick=()=>{if(!audio.src){if(tracks.length)play(0);return}if(audio.paused){audio.play();el('toggle').textContent='Ⅱ'}else{audio.pause();el('toggle').textContent='▶'}};
-el('prev').onclick=()=>play(index-1);el('next').onclick=()=>play(index+1);
+el('toggle').onclick=async()=>{
+ if(!audio.src){if(tracks.length)play(0);return}
+ if(audio.paused){try{await audio.play()}catch(e){el('message').textContent='재생할 수 없어요. 다른 곡을 선택해 주세요.'}}
+ else audio.pause();
+};
+el('prev').onclick=()=>{if(index>=0)play(index-1)};
+el('next').onclick=()=>{if(index>=0)play(index+1)};
 el('volume').oninput=e=>audio.volume=Number(e.target.value);
-el('seek').oninput=e=>{if(audio.duration)audio.currentTime=Number(e.target.value)};
+el('seek').oninput=e=>{if(Number.isFinite(audio.duration))audio.currentTime=Number(e.target.value)};
+audio.addEventListener('playing',()=>{el('toggle').textContent='Ⅱ';el('message').textContent='미리듣기 재생 중'});
+audio.addEventListener('pause',()=>{el('toggle').textContent='▶'});
 audio.addEventListener('timeupdate',()=>{el('current').textContent=time(audio.currentTime);el('seek').max=audio.duration||30;el('seek').value=audio.currentTime});
-audio.addEventListener('ended',()=>play(index+1));
+audio.addEventListener('loadedmetadata',()=>{el('duration').textContent=time(audio.duration)});
+audio.addEventListener('error',()=>{if(audio.src)el('message').textContent='음원 파일을 불러오지 못했어요. 다른 곡을 선택해 주세요.'});
+audio.addEventListener('ended',()=>{if(index>=0)play(index+1)});
 audio.volume=.8;search('K-pop');
 </script></body></html>
